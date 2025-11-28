@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -105,12 +104,7 @@
             border: 1px solid #c3e6cb;
             display: block;
         }
-        .status.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
+
         .visualization {
             text-align: center;
             margin-top: 20px;
@@ -145,7 +139,7 @@
 <body>
     <div class="container">
         <h1>建筑板材生产线能耗数据清洗系统</h1>
-
+        
         <div class="section">
             <h2 class="section-title">1. 上传数据文件</h2>
             <div class="form-group">
@@ -153,9 +147,9 @@
                 <input type="file" id="fileInput" accept=".csv">
             </div>
             <button onclick="uploadFile()">上传文件</button>
-
+            
             <div id="uploadStatus" class="status"></div>
-
+            
             <div id="dataPreview" style="display:none;">
                 <h3>数据预览</h3>
                 <p>数据形状: <span id="dataShape"></span></p>
@@ -166,14 +160,14 @@
                     </table>
                 </div>
             </div>
-
+            
             <div id="qualityReport" style="display:none;">
                 <h3>数据质量报告</h3>
                 <p>缺失值: <span id="missingValues"></span></p>
                 <p>重复行: <span id="duplicateRows"></span></p>
             </div>
         </div>
-
+        
         <div class="section">
             <h2 class="section-title">2. 数据清洗配置</h2>
             <div class="config-panel">
@@ -182,7 +176,7 @@
                         <label>
                             <input type="checkbox" id="handleMissing" checked> 处理缺失值
                         </label>
-                        <select id="missingMethod" style="margin-top: 5px;">
+                        <label for="missingMethod"></label><select id="missingMethod" style="margin-top: 5px;">
                             <option value="interpolate">线性插值</option>
                             <option value="forward_fill">前向填充</option>
                             <option value="backward_fill">后向填充</option>
@@ -190,47 +184,47 @@
                         </select>
                     </div>
                 </div>
-
+                
                 <div class="config-item">
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="removeOutliers" checked> 移除异常值
                         </label>
-                        <select id="outlierMethod" style="margin-top: 5px;">
+                        <label for="outlierMethod"></label><select id="outlierMethod" style="margin-top: 5px;">
                             <option value="zscore">Z-Score方法</option>
                             <option value="iqr">IQR方法</option>
                             <option value="isolation_forest">孤立森林</option>
                         </select>
-                        <input type="number" id="outlierThreshold" value="3" min="1" max="10" step="0.1" 
-                               placeholder="阈值" style="margin-top: 5px;">
+                        <label for="outlierThreshold"></label><input type="number" id="outlierThreshold" value="3" min="1" max="10" step="0.1"
+                                                                     placeholder="阈值" style="margin-top: 5px;">
                     </div>
                 </div>
-
+                
                 <div class="config-item">
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="smoothData" checked> 数据平滑
                         </label>
-                        <select id="smoothMethod" style="margin-top: 5px;">
+                        <label for="smoothMethod"></label><select id="smoothMethod" style="margin-top: 5px;">
                             <option value="savgol">Savitzky-Golay滤波</option>
                             <option value="moving_average">移动平均</option>
                         </select>
                     </div>
                 </div>
-
+                
                 <div class="config-item">
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="normalizeData" checked> 数据标准化
                         </label>
-                        <select id="normalizeMethod" style="margin-top: 5px;">
+                        <label for="normalizeMethod"></label><select id="normalizeMethod" style="margin-top: 5px;">
                             <option value="standard">标准化 (Z-score)</option>
                             <option value="minmax">最小-最大标准化</option>
                             <option value="robust">鲁棒标准化</option>
                         </select>
                     </div>
                 </div>
-
+                
                 <div class="config-item">
                     <div class="form-group">
                         <label>
@@ -238,23 +232,23 @@
                         </label>
                     </div>
                 </div>
-
+                
                 <div class="config-item">
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="createSlidingFeatures" checked> 创建滑动窗口特征
                         </label>
-                        <input type="number" id="slidingWindowSize" value="10" min="3" max="100" 
-                               placeholder="窗口大小" style="margin-top: 5px;">
+                        <label for="slidingWindowSize"></label><input type="number" id="slidingWindowSize" value="10" min="3" max="100"
+                                                                      placeholder="窗口大小" style="margin-top: 5px;">
                     </div>
                 </div>
             </div>
-
+            
             <button class="success" onclick="startCleaning()">开始清洗数据</button>
-
+            
             <div id="cleaningStatus" class="status"></div>
         </div>
-
+        
         <div class="section">
             <h2 class="section-title">3. 清洗结果预览</h2>
             <div id="cleanedPreview" style="display:none;">
@@ -266,14 +260,14 @@
                     </table>
                 </div>
             </div>
-
+            
             <button class="secondary" onclick="visualizeData()" style="display:none;" id="visualizeBtn">生成可视化图表</button>
-
+            
             <div class="visualization" id="visualization" style="display:none;">
                 <h3>数据分布图</h3>
                 <img id="plotImage" src="" alt="数据分布图">
             </div>
-
+            
             <button class="success" onclick="downloadData()" style="display:none;" id="downloadBtn">下载清洗后的数据</button>
         </div>
     </div>
@@ -285,15 +279,15 @@
         function uploadFile() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
-
+            
             if (!file) {
                 showStatus('uploadStatus', '请选择一个CSV文件', 'error');
                 return;
             }
-
+            
             const formData = new FormData();
             formData.append('file', file);
-
+            
             fetch('/upload', {
                 method: 'POST',
                 body: formData
@@ -303,13 +297,13 @@
                 if (data.success) {
                     originalData = data;
                     showStatus('uploadStatus', '文件上传成功！', 'success');
-
+                    
                     document.getElementById('dataShape').textContent = `${data.shape[0]} 行 × ${data.shape[1]} 列`;
-
+                    
                     // 显示数据预览
                     displayTable('previewHeader', 'previewBody', data.preview, data.columns);
                     document.getElementById('dataPreview').style.display = 'block';
-
+                    
                     // 显示质量报告
                     document.getElementById('missingValues').textContent = 
                         Object.keys(data.missing_values).length > 0 ? 
@@ -340,7 +334,7 @@
                 create_sliding_features: document.getElementById('createSlidingFeatures').checked,
                 sliding_window_size: parseInt(document.getElementById('slidingWindowSize').value)
             };
-
+            
             fetch('/clean_data', {
                 method: 'POST',
                 headers: {
@@ -353,13 +347,13 @@
                 if (data.success) {
                     cleanedData = data;
                     showStatus('cleaningStatus', '数据清洗完成！', 'success');
-
+                    
                     // 显示清洗后的数据预览
                     document.getElementById('cleanedShape').textContent = 
                         `${data.report.original_shape[0]} 行 × ${data.report.original_shape[1]} 列`;
                     displayTable('cleanedPreviewHeader', 'cleanedPreviewBody', data.preview, data.report.columns);
                     document.getElementById('cleanedPreview').style.display = 'block';
-
+                    
                     // 显示可视化和下载按钮
                     document.getElementById('visualizeBtn').style.display = 'inline-block';
                     document.getElementById('downloadBtn').style.display = 'inline-block';
@@ -377,7 +371,7 @@
             const numericColumns = cleanedData ? cleanedData.report.columns.filter(col => 
                 !['timestamp', 'hour', 'day_of_week', 'month', 'is_weekend'].includes(col)
             ) : [];
-
+            
             fetch('/visualize', {
                 method: 'POST',
                 headers: {
@@ -426,11 +420,11 @@
         function displayTable(headerId, bodyId, data, columns) {
             const header = document.getElementById(headerId);
             const body = document.getElementById(bodyId);
-
+            
             // 清空现有内容
             header.innerHTML = '';
             body.innerHTML = '';
-
+            
             // 创建表头
             const headerRow = document.createElement('tr');
             columns.forEach(col => {
@@ -439,7 +433,7 @@
                 headerRow.appendChild(th);
             });
             header.appendChild(headerRow);
-
+            
             // 创建表体
             data.forEach(row => {
                 const tr = document.createElement('tr');
@@ -459,7 +453,7 @@
             element.textContent = message;
             element.className = 'status ' + type;
             element.style.display = 'block';
-
+            
             // 3秒后自动隐藏成功消息
             if (type === 'success') {
                 setTimeout(() => {
@@ -470,4 +464,3 @@
     </script>
 </body>
 </html>
-    
