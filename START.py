@@ -252,7 +252,6 @@ class BuildingMaterialEnergyDataCleaner:
 
     def remove_outliers(self, outlier_method="zscore", threshold=3, columns=None):
         """移除异常值"""
-        global outliers
         if outlier_method == "zscore":
             outliers = self.detect_outliers_zscore(threshold=threshold, columns=columns)
         elif outlier_method == "iqr":
@@ -323,7 +322,6 @@ class BuildingMaterialEnergyDataCleaner:
 
     def visualize_data_quality(self, columns=None):
         """可视化数据质量"""
-        global i
         if columns is None:
             columns = self.original_data.select_dtypes(include=[np.number]).columns[
                 :6
@@ -364,6 +362,55 @@ class BuildingMaterialEnergyDataCleaner:
         return report
 
 
+# 辅助函数：将数据转换为JSON兼容格式
+def convert_for_json(data):
+    """将包含NaN的数据转换为JSON兼容格式"""
+    if isinstance(data, dict):
+        return {key: convert_for_json(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_for_json(item) for item in data]
+    elif isinstance(data, pd.DataFrame):
+        # 将DataFrame转换为字典列表，处理NaN值
+        result = []
+        for _, row in data.iterrows():
+            row_dict = {}
+            for col, val in row.items():
+                if pd.isna(val):
+                    row_dict[col] = None  # 将NaN转换为None
+                else:
+                    # 处理numpy数据类型
+                    if isinstance(val, (np.integer, np.floating)):
+                        row_dict[col] = float(val)
+                    elif isinstance(val, np.bool_):
+                        row_dict[col] = bool(val)
+                    else:
+                        row_dict[col] = val
+            result.append(row_dict)
+        return result
+    elif isinstance(data, pd.Series):
+        # 将Series转换为字典，处理NaN值
+        result = {}
+        for idx, val in data.items():
+            if pd.isna(val):
+                result[idx] = None
+            else:
+                if isinstance(val, (np.integer, np.floating)):
+                    result[idx] = float(val)
+                elif isinstance(val, np.bool_):
+                    result[idx] = bool(val)
+                else:
+                    result[idx] = val
+        return result
+    elif pd.isna(data):
+        return None
+    elif isinstance(data, (np.integer, np.floating)):
+        return float(data)
+    elif isinstance(data, np.bool_):
+        return bool(data)
+    else:
+        return data
+
+
 app = Flask(__name__)
 
 # 全局数据清洗器实例
@@ -392,8 +439,8 @@ def upload_file():
         # 获取数据质量报告
         quality_report = cleaner.check_data_quality()
 
-        # 返回数据预览和质量报告
-        preview_data = cleaner.original_data.head(10).to_dict("records")
+        # 返回数据预览和质量报告（转换为JSON兼容格式）
+        preview_data = convert_for_json(cleaner.original_data.head(10))
         columns = list(cleaner.original_data.columns)
 
         return jsonify(
@@ -403,7 +450,7 @@ def upload_file():
                 "columns": columns,
                 "shape": cleaner.original_data.shape,
                 "missing_values": (
-                    quality_report["missing_values"].to_dict()
+                    convert_for_json(quality_report["missing_values"])
                     if not quality_report["missing_values"].empty
                     else {}
                 ),
@@ -420,7 +467,7 @@ def preview_data():
         return jsonify({"error": "未上传数据"}), 400
 
     try:
-        preview = cleaner.original_data.head(10).to_dict("records")
+        preview = convert_for_json(cleaner.original_data.head(10))
         columns = list(cleaner.original_data.columns)
 
         return jsonify(
@@ -447,8 +494,9 @@ def clean_data():
         cleaned_df = cleaner.clean_complete_pipeline(config)
 
         # 返回清洗后的预览
-        preview = cleaned_df.head(10).to_dict("records")
+        preview = convert_for_json(cleaned_df.head(10))
         report = cleaner.get_cleaning_report()
+        report = convert_for_json(report)
 
         return jsonify({"success": True, "preview": preview, "report": report})
     except Exception as e:
@@ -950,7 +998,9 @@ if __name__ == "__main__":
                 const tr = document.createElement('tr');
                 columns.forEach(col => {
                     const td = document.createElement('td');
-                    td.textContent = row[col] !== undefined ? row[col] : '';
+                    const value = row[col];
+                    // 处理null值显示
+                    td.textContent = value !== null && value !== undefined ? value : '';
                     tr.appendChild(td);
                 });
                 body.appendChild(tr);

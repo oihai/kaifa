@@ -445,7 +445,9 @@
                 const tr = document.createElement('tr');
                 columns.forEach(col => {
                     const td = document.createElement('td');
-                    td.textContent = row[col] !== undefined ? row[col] : '';
+                    const value = row[col];
+                    // 处理null值显示
+                    td.textContent = value !== null && value !== undefined ? value : '';
                     tr.appendChild(td);
                 });
                 body.appendChild(tr);
