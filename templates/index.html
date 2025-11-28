@@ -1,0 +1,471 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建筑板材生产线能耗数据清洗系统</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .section-title {
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="file"], input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.secondary {
+            background-color: #95a5a6;
+        }
+        button.secondary:hover {
+            background-color: #7f8c8d;
+        }
+        button.success {
+            background-color: #2ecc71;
+        }
+        button.success:hover {
+            background-color: #27ae60;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #ecf0f1;
+            font-weight: bold;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .visualization {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .visualization img {
+            max-width: 100%;
+            height: auto;
+        }
+        .config-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .config-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        .data-preview {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        @media (max-width: 768px) {
+            .config-panel {
+                flex-direction: column;
+            }
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>建筑板材生产线能耗数据清洗系统</h1>
+
+        <div class="section">
+            <h2 class="section-title">1. 上传数据文件</h2>
+            <div class="form-group">
+                <label for="fileInput">选择CSV文件:</label>
+                <input type="file" id="fileInput" accept=".csv">
+            </div>
+            <button onclick="uploadFile()">上传文件</button>
+
+            <div id="uploadStatus" class="status"></div>
+
+            <div id="dataPreview" style="display:none;">
+                <h3>数据预览</h3>
+                <p>数据形状: <span id="dataShape"></span></p>
+                <div class="data-preview">
+                    <table id="previewTable">
+                        <thead id="previewHeader"></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="qualityReport" style="display:none;">
+                <h3>数据质量报告</h3>
+                <p>缺失值: <span id="missingValues"></span></p>
+                <p>重复行: <span id="duplicateRows"></span></p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">2. 数据清洗配置</h2>
+            <div class="config-panel">
+                <div class="config-item">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="handleMissing" checked> 处理缺失值
+                        </label>
+                        <select id="missingMethod" style="margin-top: 5px;">
+                            <option value="interpolate">线性插值</option>
+                            <option value="forward_fill">前向填充</option>
+                            <option value="backward_fill">后向填充</option>
+                            <option value="mean">均值填充</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="removeOutliers" checked> 移除异常值
+                        </label>
+                        <select id="outlierMethod" style="margin-top: 5px;">
+                            <option value="zscore">Z-Score方法</option>
+                            <option value="iqr">IQR方法</option>
+                            <option value="isolation_forest">孤立森林</option>
+                        </select>
+                        <input type="number" id="outlierThreshold" value="3" min="1" max="10" step="0.1" 
+                               placeholder="阈值" style="margin-top: 5px;">
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="smoothData" checked> 数据平滑
+                        </label>
+                        <select id="smoothMethod" style="margin-top: 5px;">
+                            <option value="savgol">Savitzky-Golay滤波</option>
+                            <option value="moving_average">移动平均</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="normalizeData" checked> 数据标准化
+                        </label>
+                        <select id="normalizeMethod" style="margin-top: 5px;">
+                            <option value="standard">标准化 (Z-score)</option>
+                            <option value="minmax">最小-最大标准化</option>
+                            <option value="robust">鲁棒标准化</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="createTimeFeatures" checked> 创建时间特征
+                        </label>
+                    </div>
+                </div>
+
+                <div class="config-item">
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="createSlidingFeatures" checked> 创建滑动窗口特征
+                        </label>
+                        <input type="number" id="slidingWindowSize" value="10" min="3" max="100" 
+                               placeholder="窗口大小" style="margin-top: 5px;">
+                    </div>
+                </div>
+            </div>
+
+            <button class="success" onclick="startCleaning()">开始清洗数据</button>
+
+            <div id="cleaningStatus" class="status"></div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">3. 清洗结果预览</h2>
+            <div id="cleanedPreview" style="display:none;">
+                <p>清洗后数据形状: <span id="cleanedShape"></span></p>
+                <div class="data-preview">
+                    <table id="cleanedPreviewTable">
+                        <thead id="cleanedPreviewHeader"></thead>
+                        <tbody id="cleanedPreviewBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button class="secondary" onclick="visualizeData()" style="display:none;" id="visualizeBtn">生成可视化图表</button>
+
+            <div class="visualization" id="visualization" style="display:none;">
+                <h3>数据分布图</h3>
+                <img id="plotImage" src="" alt="数据分布图">
+            </div>
+
+            <button class="success" onclick="downloadData()" style="display:none;" id="downloadBtn">下载清洗后的数据</button>
+        </div>
+    </div>
+
+    <script>
+        let originalData = null;
+        let cleanedData = null;
+
+        function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showStatus('uploadStatus', '请选择一个CSV文件', 'error');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    originalData = data;
+                    showStatus('uploadStatus', '文件上传成功！', 'success');
+
+                    document.getElementById('dataShape').textContent = `${data.shape[0]} 行 × ${data.shape[1]} 列`;
+
+                    // 显示数据预览
+                    displayTable('previewHeader', 'previewBody', data.preview, data.columns);
+                    document.getElementById('dataPreview').style.display = 'block';
+
+                    // 显示质量报告
+                    document.getElementById('missingValues').textContent = 
+                        Object.keys(data.missing_values).length > 0 ? 
+                        JSON.stringify(data.missing_values) : '无缺失值';
+                    document.getElementById('duplicateRows').textContent = data.duplicate_rows;
+                    document.getElementById('qualityReport').style.display = 'block';
+                } else {
+                    showStatus('uploadStatus', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('uploadStatus', '上传失败: ' + error.message, 'error');
+            });
+        }
+
+        function startCleaning() {
+            const config = {
+                handle_missing: document.getElementById('handleMissing').checked,
+                missing_method: document.getElementById('missingMethod').value,
+                remove_outliers: document.getElementById('removeOutliers').checked,
+                outlier_method: document.getElementById('outlierMethod').value,
+                outlier_threshold: parseFloat(document.getElementById('outlierThreshold').value),
+                smooth_data: document.getElementById('smoothData').checked,
+                smooth_method: document.getElementById('smoothMethod').value,
+                normalize: document.getElementById('normalizeData').checked,
+                normalize_method: document.getElementById('normalizeMethod').value,
+                create_time_features: document.getElementById('createTimeFeatures').checked,
+                create_sliding_features: document.getElementById('createSlidingFeatures').checked,
+                sliding_window_size: parseInt(document.getElementById('slidingWindowSize').value)
+            };
+
+            fetch('/clean_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    cleanedData = data;
+                    showStatus('cleaningStatus', '数据清洗完成！', 'success');
+
+                    // 显示清洗后的数据预览
+                    document.getElementById('cleanedShape').textContent = 
+                        `${data.report.original_shape[0]} 行 × ${data.report.original_shape[1]} 列`;
+                    displayTable('cleanedPreviewHeader', 'cleanedPreviewBody', data.preview, data.report.columns);
+                    document.getElementById('cleanedPreview').style.display = 'block';
+
+                    // 显示可视化和下载按钮
+                    document.getElementById('visualizeBtn').style.display = 'inline-block';
+                    document.getElementById('downloadBtn').style.display = 'inline-block';
+                } else {
+                    showStatus('cleaningStatus', data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('cleaningStatus', '清洗失败: ' + error.message, 'error');
+            });
+        }
+
+        function visualizeData() {
+            // 获取数值列用于可视化
+            const numericColumns = cleanedData ? cleanedData.report.columns.filter(col => 
+                !['timestamp', 'hour', 'day_of_week', 'month', 'is_weekend'].includes(col)
+            ) : [];
+
+            fetch('/visualize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ columns: numericColumns.slice(0, 6) }) // 限制为前6列
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.plot_url) {
+                    document.getElementById('plotImage').src = 'data:image/png;base64,' + data.plot_url;
+                    document.getElementById('visualization').style.display = 'block';
+                } else {
+                    alert('生成可视化图表失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('可视化失败: ' + error.message);
+            });
+        }
+
+        function downloadData() {
+            fetch('/download')
+            .then(response => response.json())
+            .then(data => {
+                if (data.csv_content) {
+                    // 创建下载链接
+                    const blob = new Blob([data.csv_content], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'cleaned_energy_data.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } else {
+                    alert('下载失败: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('下载失败: ' + error.message);
+            });
+        }
+
+        function displayTable(headerId, bodyId, data, columns) {
+            const header = document.getElementById(headerId);
+            const body = document.getElementById(bodyId);
+
+            // 清空现有内容
+            header.innerHTML = '';
+            body.innerHTML = '';
+
+            // 创建表头
+            const headerRow = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                headerRow.appendChild(th);
+            });
+            header.appendChild(headerRow);
+
+            // 创建表体
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.textContent = row[col] !== undefined ? row[col] : '';
+                    tr.appendChild(td);
+                });
+                body.appendChild(tr);
+            });
+        }
+
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'status ' + type;
+            element.style.display = 'block';
+
+            // 3秒后自动隐藏成功消息
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
+    
