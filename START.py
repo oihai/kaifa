@@ -7,6 +7,15 @@ import base64
 from data_cleaner import BuildingMaterialEnergyDataCleaner
 from utils import convert_for_json
 
+"""
+
+fuck ypou    qwlikfhelwikqjhfsdc
+fsadfkhqgfkjhwqef
+fasdfhljl
+aslkdfhjhlwqhefioweq2jfjw
+wqlfcuhjsdakbcjvjb
+
+"""
 app = Flask(__name__, template_folder=".")
 
 # 全局数据清洗器实例
